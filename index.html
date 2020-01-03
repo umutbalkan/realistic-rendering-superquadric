@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<script id="vertex-shader-Gouraud" type="x-shader/x-vertex">
+
+attribute vec4 vPosition;
+attribute vec4 vNormal;
+attribute vec4 vColor;
+attribute vec2 vTexCoord;
+varying vec2 fTexCoord;
+
+varying vec4 fColor;
+varying vec3 R;
+
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform vec4 lightPosition;
+uniform float shininess;
+uniform mat3 normalMatrix;
+
+
+void main()
+{
+    
+    // pos is vertex position in eye coordinates
+	
+	gl_PointSize = 5.0;
+    
+    vec3 pos = (modelViewMatrix * vPosition).xyz;
+    
+    // vector from vertex position to light source
+    
+    vec3 L;
+    
+    // check for directional light
+    
+    if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
+    else L = normalize( lightPosition.xyz - pos );
+
+    // Because the eye point the is at the orgin
+    // the vector from the vertex position to the eye is
+    	
+    vec3 E = -normalize( pos );
+    
+    // halfway vector
+    
+    vec3 H = normalize( L + E );
+
+    // Transform vertex normal into eye coordinates
+    
+    vec3 N = normalize((modelViewMatrix*vNormal).xyz);
+
+
+    // Compute terms in the illumination equation
+    vec4 ambient = ambientProduct;
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*diffuseProduct;
+
+    float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * specularProduct;
+    
+    if( dot(L, N) < 0.0 ) {
+	specular = vec4(0.0, 0.0, 0.0, 1.0);
+    } 
+
+    gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+    
+    fColor = ambient + diffuse +specular;
+
+    fColor.a = 1.0;
+	
+	fTexCoord = vTexCoord;
+	
+	R = reflect(pos, N);
+}
+</script>
+
+<script id="fragment-shader-Gouraud" type="x-shader/x-fragment">
+
+precision mediump float;
+
+varying vec4 fColor;
+varying vec3 R;
+varying  vec2 fTexCoord;
+
+uniform sampler2D texture;
+uniform samplerCube texMap;
+
+void
+main()
+{
+	//vec4 texColor = textureCube(texMap, R);
+	//gl_FragColor = texColor;
+    gl_FragColor = fColor*texture2D( texture, fTexCoord );
+
+}
+</script>
+
+<script id="vertex-shader-Phong" type="x-shader/x-vertex">
+
+attribute vec4 vPosition;
+attribute vec4 vNormal;
+attribute vec2 vTexCoord;
+varying vec3 N, L, E;
+varying vec3 R;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform vec4 lightPosition;
+uniform mat3 normalMatrix;
+varying vec2 fTexCoord;
+
+void main()
+{
+    vec3 pos = (modelViewMatrix * vPosition).xyz;
+    
+    // check for directional light
+    
+    if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
+    else L = normalize( lightPosition.xyz - pos );
+    
+    E =  -normalize(pos);
+    N = normalize((modelViewMatrix*vNormal).xyz);
+
+    gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+	
+	R = reflect(pos, N);
+	
+	fTexCoord = vTexCoord;
+    
+}
+</script>
+
+<script id="fragment-shader-Phong" type="x-shader/x-fragment">
+
+precision mediump float;
+
+uniform vec4 ambientProduct;
+uniform vec4 diffuseProduct;
+uniform vec4 specularProduct;
+uniform float shininess;
+varying vec3 N, L, E;
+varying vec3 R;
+varying  vec2 fTexCoord;
+
+uniform sampler2D texture;
+uniform samplerCube texMap;
+
+void main()
+{    
+    vec4 fColor;
+    
+    vec3 H = normalize( L + E );
+    vec4 ambient = ambientProduct;
+	
+	//vec4 texColor = textureCube(texMap, R);
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*diffuseProduct;
+
+    float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * specularProduct;
+    
+    if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
+
+    fColor = ambient + diffuse +specular;
+    fColor.a = 1.0;
+	
+	//gl_FragColor = texColor;
+    gl_FragColor = fColor*texture2D( texture, fTexCoord );
+}
+</script>
+
+<script id="vertex-shader-Environment-Mapping" type="x-shader/x-vertex">
+
+attribute vec4 vPosition;
+attribute vec4 vNormal;
+attribute vec2 vTexCoord;
+varying vec3 N, L, E;
+varying vec3 R;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform vec4 lightPosition;
+uniform mat3 normalMatrix;
+varying vec2 fTexCoord;
+
+void main()
+{
+    vec3 pos = (modelViewMatrix * vPosition).xyz;
+    
+    // check for directional light
+    
+    if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
+    else L = normalize( lightPosition.xyz - pos );
+    
+    E =  -normalize(pos);
+    N = normalize((modelViewMatrix*vNormal).xyz);
+
+    gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+	
+	R = reflect(pos, N);
+	
+	fTexCoord = vTexCoord;
+    
+}
+</script>
+
+<script id="fragment-shader-Environment-Mapping" type="x-shader/x-fragment">
+
+precision mediump float;
+
+uniform vec4 ambientProduct;
+uniform vec4 diffuseProduct;
+uniform vec4 specularProduct;
+uniform float shininess;
+varying vec3 N, L, E;
+varying vec3 R;
+varying  vec2 fTexCoord;
+
+uniform sampler2D texture;
+uniform samplerCube texMap;
+
+void main()
+{    
+    vec4 fColor;
+    
+    vec3 H = normalize( L + E );
+    vec4 ambient = ambientProduct;
+	
+	vec4 texColor = textureCube(texMap, R);
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*diffuseProduct;
+
+    float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * specularProduct;
+    
+    if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
+
+    fColor = ambient + diffuse +specular;
+    fColor.a = 1.0;
+	
+	gl_FragColor = texColor;//*fColor;
+    //gl_FragColor = fColor*texture2D( texture, fTexCoord );
+}
+</script>
+
+<table style="width:100%">
+	<tr>
+		<th>
+			<body>
+			<canvas id="gl-canvas" width="512" height="512">
+			Oops ... your browser doesn't support the HTML5 canvas element
+			</canvas>
+			</body>
+		</th>
+
+		<th>
+			e1 0.5<input id="slider0" type="range" min="0.5" max="4.0" value="0.2" oninput="displayResult()" step="0.1"/>10.0 <br/>
+			e2 0.5<input id="slider1" type="range" min="0.5" max="4.0" value="0.2" step="0.1"/>10.0 <br/>
+			N 10<input id="slider2" type="range" min="10" max="200" value="200" step="1"/>200 <br/>
+			W 10<input id="slider3" type="range" min="10" max="40" value="40" step="1"/>40 <br/><br/>
+			Bound Box X 0.5<input id="slider6" type="range" min="0.5" max="4" value="1" step="0.5"/>4 <br/>
+			Bound Box Y 0.5<input id="slider7" type="range" min="0.5" max="4" value="1" step="0.5"/>4 <br/>
+			Bound Box Z 0.5<input id="slider8" type="range" min="0.5" max="4" value="1" step="0.5"/>4 <br/>
+			<button id= "changeRepresentation">Wire Frame/Normal</button> <br/>
+			<button id= "gouraudShade">Gouraud Shading</button> 
+			<button id= "phongShade">Phong Shading</button> <br/>
+			<button id= "environmentMapping">Environment Mapping</button> <br/>
+		</th>
+
+	</tr>
+</table>
+
+<script type="text/javascript" src="Common/webgl-utils.js"></script>
+<script type="text/javascript" src="Common/initShaders.js"></script>
+<script type="text/javascript" src="Common/MV.js"></script>
+<script type="text/javascript" src="Superquadratic.js"></script>
+
+
+</html>
