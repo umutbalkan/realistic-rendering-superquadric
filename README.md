@@ -3,4 +3,4 @@
 
 - aims to create a super-quadratic with Environment Mapping, Gouraud Shading and Phong Shading
 
-Check the link for a demo!
+Check the [link for a demo!](https://umutbalkan.github.io/realistic-rendering-superquadric/)
